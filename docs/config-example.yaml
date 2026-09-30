@@ -1,0 +1,11 @@
+name: mdm
+description: MDM commands
+
+
+commands:
+  lint: |
+    ls .
+    pwd
+  build:
+    description: Build description
+    command: ls .
