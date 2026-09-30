@@ -1,9 +1,5 @@
 use serde::Deserialize;
-use std::{
-    collections::BTreeMap,
-    fmt::Debug,
-    process::{Child, Command as ProcessCommand},
-};
+use std::{collections::BTreeMap, fmt::Debug, process::Command as ProcessCommand};
 
 use crate::commands::single_command::{DetailedSingleCommand, SingleCommand};
 
@@ -16,8 +12,8 @@ pub trait Commands {
     fn print_available_commands(&self) {
         for (command_name, metadata) in self.get_metadata() {
             match metadata.get_description() {
-                "" => println!("- {}", command_name),
-                description => println!("- {}: {}", command_name, description),
+                "" => println!("- {command_name}"),
+                description => println!("- {command_name}: {description}"),
             }
         }
     }
@@ -33,16 +29,18 @@ pub trait CommandMetadata {
 }
 
 pub trait Command: CommandMetadata {
-    fn run(&self) -> Child {
+    fn run(&self, command_name: &str, args: &[String]) -> bool {
         let command = self.get_command();
 
-        let child = ProcessCommand::new("sh")
+        let status = ProcessCommand::new("sh")
             .arg("-c")
             .arg(command)
-            .spawn()
+            .arg(command_name) // becomes $0 inside the script
+            .args(args) // becomes $1, $2
+            .status()
             .expect("Failed to execute");
 
-        return child;
+        return status.success();
     }
 }
 
@@ -73,7 +71,7 @@ impl CommandMetadata for AnyCommand {
 }
 
 impl Command for AnyCommand {
-    fn run(&self) -> Child {
-        return self.as_command().run();
+    fn run(&self, command_name: &str, args: &[String]) -> bool {
+        return self.as_command().run(command_name, args);
     }
 }

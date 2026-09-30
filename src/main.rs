@@ -11,14 +11,18 @@ use std::{fs, process::exit};
 #[command(name = "orch")]
 #[command(about = "Command orchestrator")]
 struct CliOptions {
-    // Command to execute
+    /// Command to execute
     command: Option<String>,
 
-    // List available commands
+    /// Extra arguments forwarded to the command
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+    args: Vec<String>,
+
+    /// List available commands
     #[arg(short, long)]
     list: bool,
 
-    // Info about project
+    /// Info about project
     #[arg(short, long)]
     project: bool,
 }
@@ -35,7 +39,7 @@ fn get_project() -> Project {
 
     if let Err(err) = project_data {
         eprintln!("Project data is not valid");
-        eprintln!("{}", err);
+        eprintln!("{err}");
         exit(1);
     };
 
@@ -59,7 +63,7 @@ fn main() {
         exit(0);
     }
 
-    let command_name = &cli_options.command.expect("Error: command required");
+    let command_name = &cli_options.command.expect("Command required");
 
     let command = project
         .commands
@@ -68,17 +72,17 @@ fn main() {
 
     println!(
         "{}",
-        format!("Running {} command...", command_name)
-            .green()
-            .bold()
+        format!("Running {command_name} command...").green().bold()
     );
+    println!();
 
-    let status = command.run().wait().expect("Failed to wait");
+    let succeed = command.run(command_name, &cli_options.args);
 
-    if status.success() {
+    if succeed {
+        println!();
         println!(
             "{}",
-            format!("Command {} ran successfully...", command_name)
+            format!("Command {command_name} ran successfully...")
                 .green()
                 .bold()
         )
