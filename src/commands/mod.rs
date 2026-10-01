@@ -1,9 +1,9 @@
+pub mod cli_command;
+
 use serde::Deserialize;
-use std::{collections::BTreeMap, fmt::Debug, process::Command as ProcessCommand};
+use std::collections::{BTreeMap, HashMap};
 
-use crate::commands::single_command::{DetailedSingleCommand, SingleCommand};
-
-pub mod single_command;
+use crate::commands::cli_command::{DetailedSingleCLICommand, SingleCLICommand};
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash)]
 pub struct CommandName(pub String);
@@ -21,6 +21,10 @@ pub trait Commands {
     fn get_command(&self, name: &str) -> Option<&impl Command>;
 }
 
+pub trait CommandEnvironment {
+    fn get_env_vars(&self) -> HashMap<String, String>;
+}
+
 pub trait CommandMetadata {
     fn get_command(&self) -> &str;
     fn get_description(&self) -> &str {
@@ -28,27 +32,15 @@ pub trait CommandMetadata {
     }
 }
 
-pub trait Command: CommandMetadata {
-    fn run(&self, command_name: &str, args: &[String]) -> bool {
-        let command = self.get_command();
-
-        let status = ProcessCommand::new("sh")
-            .arg("-c")
-            .arg(command)
-            .arg(command_name) // becomes $0 inside the script
-            .args(args) // becomes $1, $2
-            .status()
-            .expect("Failed to execute");
-
-        return status.success();
-    }
+pub trait Command: CommandMetadata + CommandEnvironment {
+    fn run(&self, command_name: &str, env_vars: &HashMap<String, String>, args: &[String]) -> bool;
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum AnyCommand {
-    Simple(SingleCommand),
-    Detailed(DetailedSingleCommand),
+    Simple(SingleCLICommand),
+    Detailed(DetailedSingleCLICommand),
 }
 
 impl AnyCommand {
@@ -70,8 +62,14 @@ impl CommandMetadata for AnyCommand {
     }
 }
 
+impl CommandEnvironment for AnyCommand {
+    fn get_env_vars(&self) -> HashMap<String, String> {
+        return self.as_command().get_env_vars();
+    }
+}
+
 impl Command for AnyCommand {
-    fn run(&self, command_name: &str, args: &[String]) -> bool {
-        return self.as_command().run(command_name, args);
+    fn run(&self, command_name: &str, env_vars: &HashMap<String, String>, args: &[String]) -> bool {
+        return self.as_command().run(command_name, env_vars, args);
     }
 }

@@ -76,7 +76,8 @@ fn main() {
     );
     println!();
 
-    let succeed = command.run(command_name, &cli_options.args);
+    let project_envs = project.env.unwrap_or_default();
+    let succeed = command.run(command_name, &project_envs, &cli_options.args);
 
     if succeed {
         println!();

@@ -6,13 +6,18 @@ use std::collections::{BTreeMap, HashMap};
 pub struct Project {
     pub name: String,
     pub description: String,
+    pub env: Option<HashMap<String, String>>,
     pub commands: HashMap<CommandName, AnyCommand>,
 }
 
 impl Project {
     pub fn print_project_info(&self) {
-        println!("Name: {}", self.name);
-        println!("Description: {}", self.description);
+        let Project {
+            name, description, ..
+        } = self;
+
+        println!("Name: {name}");
+        println!("Description: {description}");
     }
 }
 
