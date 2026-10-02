@@ -1,4 +1,5 @@
 mod commands;
+mod functions;
 mod project;
 
 use clap::Parser;
@@ -6,6 +7,8 @@ use colored::Colorize;
 use commands::{Command, Commands};
 use project::Project;
 use std::{fs, process::exit};
+
+use crate::functions::Functions;
 
 #[derive(Parser)]
 #[command(name = "orch")]
@@ -25,6 +28,9 @@ struct CliOptions {
     /// Info about project
     #[arg(short, long)]
     project: bool,
+
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 fn get_project() -> Project {
@@ -59,33 +65,39 @@ fn main() {
 
     if cli_options.list {
         println!("Available commands:");
-        project.commands.print_available_commands();
+        project.print_available_commands();
+
+        println!();
+        println!("Available functions:");
+        project.print_available_functions();
         exit(0);
     }
 
     let command_name = &cli_options.command.expect("Command required");
 
     let command = project
-        .commands
         .get_command(command_name)
         .expect("Command not found.");
 
-    println!(
-        "{}",
-        format!("Running {command_name} command...").green().bold()
-    );
-    println!();
-
-    let project_envs = project.env.unwrap_or_default();
-    let succeed = command.run(command_name, &project_envs, &cli_options.args);
-
-    if succeed {
-        println!();
+    if cli_options.verbose {
         println!(
             "{}",
-            format!("Command {command_name} ran successfully...")
-                .green()
-                .bold()
-        )
+            format!("Running {command_name} command...").green().bold()
+        );
+        println!();
+    }
+
+    let succeed = command.run(command_name, &project, &cli_options.args);
+
+    if succeed {
+        if cli_options.verbose {
+            println!();
+            println!(
+                "{}",
+                format!("Command {command_name} ran successfully...")
+                    .green()
+                    .bold()
+            )
+        }
     };
 }
