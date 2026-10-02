@@ -1,3 +1,4 @@
+use convert_case::{Case, Casing};
 use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
@@ -49,7 +50,7 @@ impl ProjectElementMetadata for DetailedFunction {
 
 impl Function for DetailedFunction {
     fn build(&self, function_name: &str) -> String {
-        let function_name_snake_case = function_name.replace("-", "_");
+        let function_name_snake_case = function_name.to_case(Case::Snake);
         let body = self.body.lines().collect::<Vec<_>>().join("\n\t");
 
         return format!("{function_name_snake_case}() {{\n\t{body}\n}}");
