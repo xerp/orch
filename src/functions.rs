@@ -1,5 +1,8 @@
 use convert_case::{Case, Casing};
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    borrow::Borrow,
+    collections::{BTreeMap, HashMap},
+};
 
 use serde::Deserialize;
 
@@ -7,6 +10,12 @@ use crate::project::{ProjectElementEnvironment, ProjectElementMetadata};
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash)]
 pub struct FunctionName(pub String);
+
+impl Borrow<str> for FunctionName {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
 
 pub trait Function: ProjectElementMetadata + ProjectElementEnvironment {
     fn build(&self, function_name: &str) -> String;
@@ -16,13 +25,13 @@ pub trait Functions {
     fn print_available_functions(&self) {
         for (function_name, metadata) in self.get_functions_metadata() {
             match metadata.get_description() {
-                "" => println!("- {function_name}"),
-                description => println!("- {function_name}: {description}"),
+                None => println!("- {function_name}"),
+                Some(description) => println!("- {function_name}: {description}"),
             }
         }
     }
     fn get_functions_metadata(&self) -> BTreeMap<&str, &impl ProjectElementMetadata>;
-    fn get_functions(&self, names: &[String]) -> Vec<(&str, &impl Function)>;
+    fn get_functions<T: AsRef<str>>(&self, names: &[T]) -> HashMap<&str, &impl Function>;
 }
 
 #[derive(Debug, Deserialize)]
@@ -33,8 +42,8 @@ pub struct DetailedFunction {
 }
 
 impl ProjectElementEnvironment for DetailedFunction {
-    fn get_env_vars(&self) -> HashMap<String, String> {
-        self.env.clone().unwrap_or_default()
+    fn get_env_vars(&self) -> Option<&HashMap<String, String>> {
+        self.env.as_ref()
     }
 }
 
@@ -43,8 +52,8 @@ impl ProjectElementMetadata for DetailedFunction {
         self.body.as_str()
     }
 
-    fn get_description(&self) -> &str {
-        self.description.as_deref().unwrap_or_default()
+    fn get_description(&self) -> Option<&str> {
+        self.description.as_deref()
     }
 }
 

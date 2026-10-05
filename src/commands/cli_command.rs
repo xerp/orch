@@ -1,4 +1,4 @@
-use std::{collections::HashMap, process::Command as ProcessCommand};
+use std::{collections::HashMap, ops::Deref, process::Command as ProcessCommand};
 
 use serde::Deserialize;
 
@@ -9,8 +9,8 @@ use crate::{
 };
 
 trait CLICommand: ProjectElementMetadata + ProjectElementEnvironment {
-    fn get_uses(&self) -> Vec<String> {
-        Vec::default()
+    fn get_uses(&self) -> &[String] {
+        &[]
     }
 }
 
@@ -19,20 +19,19 @@ impl<T: CLICommand> Command for T {
         let command = self.get_element();
         let uses = self.get_uses();
         let command_env_vars = self.get_env_vars();
-        let command_functions = project.get_functions(&uses);
+        let command_functions = project.get_functions(uses);
 
-        // Merging all env vars: command env vars will override the other env vars
-        let all_env_vars: HashMap<_, _> = project
+        let all_env_vars: HashMap<&String, &String> = project
             .env
             .iter()
             .flatten()
-            .map(|(key, value)| (key.clone(), value.clone()))
             .chain(
                 command_functions
                     .iter()
-                    .flat_map(|(_name, function)| function.get_env_vars()),
+                    .filter_map(|(_name, function)| function.get_env_vars())
+                    .flatten(),
             )
-            .chain(command_env_vars)
+            .chain(command_env_vars.into_iter().flatten())
             .collect();
 
         // Taking all functions and build them
@@ -65,7 +64,7 @@ impl CLICommand for SingleCLICommand {}
 
 impl ProjectElementMetadata for SingleCLICommand {
     fn get_element(&self) -> &str {
-        self.0.as_str()
+        self.0.deref()
     }
 }
 
@@ -80,23 +79,23 @@ pub struct DetailedSingleCLICommand {
 }
 
 impl CLICommand for DetailedSingleCLICommand {
-    fn get_uses(&self) -> Vec<String> {
-        self.uses.clone().unwrap_or_default()
+    fn get_uses(&self) -> &[String] {
+        self.uses.as_deref().unwrap_or(&[])
     }
 }
 
 impl ProjectElementMetadata for DetailedSingleCLICommand {
     fn get_element(&self) -> &str {
-        self.run.as_str()
+        self.run.deref()
     }
 
-    fn get_description(&self) -> &str {
-        self.description.as_deref().unwrap_or_default()
+    fn get_description(&self) -> Option<&str> {
+        self.description.as_deref()
     }
 }
 
 impl ProjectElementEnvironment for DetailedSingleCLICommand {
-    fn get_env_vars(&self) -> HashMap<String, String> {
-        self.env.clone().unwrap_or_default()
+    fn get_env_vars(&self) -> Option<&HashMap<String, String>> {
+        self.env.as_ref()
     }
 }

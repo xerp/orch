@@ -73,7 +73,10 @@ fn main() {
         exit(0);
     }
 
-    let command_name = &cli_options.command.expect("Command required");
+    let Some(command_name) = &cli_options.command else {
+        println!("Command required");
+        exit(1);
+    };
 
     let command = project
         .get_command(command_name)
@@ -89,15 +92,24 @@ fn main() {
 
     let succeed = command.run(command_name, &project, &cli_options.args);
 
-    if succeed {
-        if cli_options.verbose {
-            println!();
-            println!(
-                "{}",
-                format!("Command {command_name} ran successfully...")
-                    .green()
-                    .bold()
-            )
-        }
-    };
+    if !succeed {
+        println!();
+        println!(
+            "{}",
+            format!("Command {command_name} has not succeed...")
+                .red()
+                .bold()
+        );
+        exit(1);
+    }
+
+    if cli_options.verbose {
+        println!();
+        println!(
+            "{}",
+            format!("Command {command_name} ran successfully...")
+                .green()
+                .bold()
+        )
+    }
 }

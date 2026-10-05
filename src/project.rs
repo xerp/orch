@@ -26,15 +26,15 @@ impl Project {
 }
 
 pub trait ProjectElementEnvironment {
-    fn get_env_vars(&self) -> HashMap<String, String> {
-        HashMap::default()
+    fn get_env_vars(&self) -> Option<&HashMap<String, String>> {
+        None
     }
 }
 
 pub trait ProjectElementMetadata {
     fn get_element(&self) -> &str;
-    fn get_description(&self) -> &str {
-        ""
+    fn get_description(&self) -> Option<&str> {
+        None
     }
 }
 
@@ -47,9 +47,7 @@ impl Commands for Project {
     }
 
     fn get_command(&self, name: &str) -> Option<&impl Command> {
-        let command = CommandName(name.to_string());
-
-        return self.commands.get(&command);
+        self.commands.get(name)
     }
 }
 
@@ -62,15 +60,12 @@ impl Functions for Project {
             .collect()
     }
 
-    fn get_functions(&self, names: &[String]) -> Vec<(&str, &impl Function)> {
+    fn get_functions<T: AsRef<str>>(&self, names: &[T]) -> HashMap<&str, &impl Function> {
         self.functions
             .iter()
             .flatten()
-            .filter_map(|(name, function)| {
-                names
-                    .contains(&name.0)
-                    .then_some((name.0.as_str(), function))
-            })
+            .filter(|(name, _function)| names.iter().any(|n| n.as_ref() == name.0))
+            .map(|(name, function)| (name.0.as_ref(), function))
             .collect()
     }
 }

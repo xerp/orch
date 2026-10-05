@@ -1,7 +1,10 @@
 pub mod cli_command;
 
 use serde::Deserialize;
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    borrow::Borrow,
+    collections::{BTreeMap, HashMap},
+};
 
 use crate::{
     commands::cli_command::{DetailedSingleCLICommand, SingleCLICommand},
@@ -11,6 +14,12 @@ use crate::{
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash)]
 pub struct CommandName(pub String);
 
+impl Borrow<str> for CommandName {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
 pub trait Command: ProjectElementMetadata + ProjectElementEnvironment {
     fn run(&self, command_name: &str, project: &Project, args: &[String]) -> bool;
 }
@@ -19,8 +28,8 @@ pub trait Commands {
     fn print_available_commands(&self) {
         for (command_name, metadata) in self.get_commands_metadata() {
             match metadata.get_description() {
-                "" => println!("- {command_name}"),
-                description => println!("- {command_name}: {description}"),
+                None => println!("- {command_name}"),
+                Some(description) => println!("- {command_name}: {description}"),
             }
         }
     }
@@ -49,13 +58,13 @@ impl ProjectElementMetadata for AnyCommand {
         self.as_command().get_element()
     }
 
-    fn get_description(&self) -> &str {
+    fn get_description(&self) -> Option<&str> {
         self.as_command().get_description()
     }
 }
 
 impl ProjectElementEnvironment for AnyCommand {
-    fn get_env_vars(&self) -> HashMap<String, String> {
+    fn get_env_vars(&self) -> Option<&HashMap<String, String>> {
         self.as_command().get_env_vars()
     }
 }
