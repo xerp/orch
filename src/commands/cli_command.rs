@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Deref, process::Command as ProcessCommand};
+use std::{collections::HashMap, io::Result, ops::Deref, process::Command as ProcessCommand};
 
 use serde::Deserialize;
 
@@ -15,7 +15,7 @@ trait CLICommand: ProjectElementMetadata + ProjectElementEnvironment {
 }
 
 impl<T: CLICommand> Command for T {
-    fn run(&self, command_name: &str, project: &Project, args: &[String]) -> bool {
+    fn run(&self, command_name: &str, project: &Project, args: &[String]) -> Result<Option<i32>> {
         let command = self.get_element();
         let uses = self.get_uses();
         let command_env_vars = self.get_env_vars();
@@ -43,7 +43,7 @@ impl<T: CLICommand> Command for T {
 
         let script = format!("{before_script}\n{command}");
 
-        let status = ProcessCommand::new("sh")
+        let result = ProcessCommand::new("sh")
             .arg("-c")
             .arg(script)
             .arg(env!("CARGO_BIN_NAME")) // becomes $0 inside the script
@@ -51,9 +51,9 @@ impl<T: CLICommand> Command for T {
             .envs(all_env_vars)
             .env("ORCH_COMMAND", command_name)
             .status()
-            .expect("Failed to execute");
+            .map(|exit_status| exit_status.code());
 
-        return status.success();
+        return result;
     }
 }
 

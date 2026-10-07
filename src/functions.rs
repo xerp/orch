@@ -2,6 +2,7 @@ use convert_case::{Case, Casing};
 use std::{
     borrow::Borrow,
     collections::{BTreeMap, HashMap},
+    ops::Deref,
 };
 
 use serde::Deserialize;
@@ -10,6 +11,14 @@ use crate::project::{ProjectElementEnvironment, ProjectElementMetadata};
 
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash)]
 pub struct FunctionName(pub String);
+
+impl Deref for FunctionName {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_str()
+    }
+}
 
 impl Borrow<str> for FunctionName {
     fn borrow(&self) -> &str {

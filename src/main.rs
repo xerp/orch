@@ -90,26 +90,43 @@ fn main() {
         println!();
     }
 
-    let succeed = command.run(command_name, &project, &cli_options.args);
+    let result = command.run(command_name, &project, &cli_options.args);
 
-    if !succeed {
-        println!();
-        println!(
-            "{}",
-            format!("Command {command_name} has not succeed...")
-                .red()
-                .bold()
-        );
-        exit(1);
-    }
-
-    if cli_options.verbose {
-        println!();
-        println!(
-            "{}",
-            format!("Command {command_name} ran successfully...")
-                .green()
-                .bold()
-        )
+    match result {
+        Ok(Some(0)) => {
+            if cli_options.verbose {
+                println!();
+                println!(
+                    "{}",
+                    format!("Command {command_name} ran successfully...")
+                        .green()
+                        .bold()
+                )
+            }
+        }
+        Ok(Some(code)) => {
+            if cli_options.verbose {
+                println!();
+                println!(
+                    "{}",
+                    format!("Command {command_name} failed with exit code {code}")
+                        .red()
+                        .bold()
+                )
+            }
+        }
+        Ok(None) => {
+            eprintln!(
+                "{}",
+                format!("Command {command_name} was terminated by a signal")
+                    .red()
+                    .bold()
+            );
+            exit(1);
+        }
+        Err(error) => {
+            eprintln!("Failed to start command {command_name}: {error}");
+            exit(1);
+        }
     }
 }

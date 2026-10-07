@@ -1,9 +1,12 @@
-pub mod cli_command;
+mod cli_command;
+mod http_command;
 
 use serde::Deserialize;
 use std::{
     borrow::Borrow,
     collections::{BTreeMap, HashMap},
+    io::Result,
+    ops::Deref,
 };
 
 use crate::{
@@ -14,6 +17,14 @@ use crate::{
 #[derive(Debug, Deserialize, PartialEq, Eq, Hash)]
 pub struct CommandName(pub String);
 
+impl Deref for CommandName {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_str()
+    }
+}
+
 impl Borrow<str> for CommandName {
     fn borrow(&self) -> &str {
         &self.0
@@ -21,7 +32,7 @@ impl Borrow<str> for CommandName {
 }
 
 pub trait Command: ProjectElementMetadata + ProjectElementEnvironment {
-    fn run(&self, command_name: &str, project: &Project, args: &[String]) -> bool;
+    fn run(&self, command_name: &str, project: &Project, args: &[String]) -> Result<Option<i32>>;
 }
 
 pub trait Commands {
@@ -70,7 +81,7 @@ impl ProjectElementEnvironment for AnyCommand {
 }
 
 impl Command for AnyCommand {
-    fn run(&self, command_name: &str, project: &Project, args: &[String]) -> bool {
+    fn run(&self, command_name: &str, project: &Project, args: &[String]) -> Result<Option<i32>> {
         self.as_command().run(command_name, project, args)
     }
 }

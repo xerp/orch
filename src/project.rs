@@ -42,7 +42,7 @@ impl Commands for Project {
     fn get_commands_metadata(&self) -> BTreeMap<&str, &impl ProjectElementMetadata> {
         self.commands
             .iter()
-            .map(|(name, command)| (name.0.as_str(), command))
+            .map(|(name, command)| (&**name, command))
             .collect()
     }
 
@@ -56,7 +56,7 @@ impl Functions for Project {
         self.functions
             .iter()
             .flatten()
-            .map(|(name, function)| (name.0.as_str(), function))
+            .map(|(name, function)| (&**name, function))
             .collect()
     }
 
