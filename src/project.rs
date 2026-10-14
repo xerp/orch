@@ -69,3 +69,95 @@ impl Functions for Project {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_load_minimal_project_succesfully() {
+        let minimal_yaml_data = "
+            name: test-project
+            description: test-project-description
+            commands:
+                example: echo 1
+        ";
+
+        let project: Project =
+            serde_yaml::from_str(minimal_yaml_data).expect("Minimal YAML should parse");
+
+        let commands: Vec<&str> = project
+            .get_commands_metadata()
+            .iter()
+            .map(|(name, _metadata)| *name)
+            .collect::<Vec<&str>>();
+
+        let functions: Vec<&str> = project
+            .get_functions_metadata()
+            .iter()
+            .map(|(name, _metadata)| *name)
+            .collect::<Vec<&str>>();
+
+        assert_eq!(project.name, "test-project");
+        assert_eq!(project.description, "test-project-description");
+
+        assert_eq!(functions.len(), 0);
+        assert_eq!(commands, vec!["example"]);
+    }
+
+    #[test]
+    fn should_not_load_project_without_name_description_and_commands() {
+        let minimal_yaml_data = "";
+
+        let result: Result<Project, _> = serde_yaml::from_str(minimal_yaml_data);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn should_load_project_with_functions() {
+        let yaml_data = "
+            name: test-project
+            description: test-project-description
+            functions:
+                hello-world:
+                    body: echo 1
+            commands:
+                example: echo 1
+        ";
+
+        let project: Project =
+            serde_yaml::from_str(yaml_data).expect("YAML with functions should parse");
+
+        let functions: Vec<&str> = project
+            .get_functions_metadata()
+            .iter()
+            .map(|(name, _metadata)| *name)
+            .collect::<Vec<&str>>();
+
+        assert_eq!(functions, vec!["hello-world"]);
+    }
+
+    #[test]
+    fn should_load_project_with_envs() {
+        let yaml_data = "
+            name: test-project
+            description: test-project-description
+            env:
+                APP_ENV: development
+                API_URL: http://localhost:8080
+            commands:
+                example: echo $APP_ENV
+        ";
+
+        let project: Project =
+            serde_yaml::from_str(yaml_data).expect("YAML with envs should parse");
+
+        let expected_env = HashMap::from([
+            ("APP_ENV".to_string(), "development".to_string()),
+            ("API_URL".to_string(), "http://localhost:8080".to_string()),
+        ]);
+
+        assert_eq!(project.env, Some(expected_env));
+    }
+}

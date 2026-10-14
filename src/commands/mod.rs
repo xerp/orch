@@ -10,7 +10,10 @@ use std::{
 };
 
 use crate::{
-    commands::cli_command::{DetailedSingleCLICommand, SingleCLICommand},
+    commands::{
+        cli_command::{DetailedSingleCLICommand, SingleCLICommand},
+        http_command::HttpCommand,
+    },
     project::{Project, ProjectElementEnvironment, ProjectElementMetadata},
 };
 
@@ -53,6 +56,7 @@ pub trait Commands {
 pub enum AnyCommand {
     Simple(SingleCLICommand),
     Detailed(DetailedSingleCLICommand),
+    Http(HttpCommand),
 }
 
 impl AnyCommand {
@@ -60,6 +64,7 @@ impl AnyCommand {
         match self {
             AnyCommand::Simple(cmd) => cmd as &dyn Command,
             AnyCommand::Detailed(cmd) => cmd as &dyn Command,
+            AnyCommand::Http(cmd) => cmd as &dyn Command,
         }
     }
 }
